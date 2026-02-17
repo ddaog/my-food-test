@@ -43,8 +43,11 @@ export default function ResultPage() {
               >
                 다시 도전
               </Link>
-              <Link href="/" className="text-[var(--color-gray-400)] text-sm">
-                홈으로
+              <Link
+                href="/create"
+                className="w-full py-4 rounded-[var(--rounded-md)] bg-white text-[var(--color-gray-800)] font-bold text-center border-2 border-[var(--color-blue-400)] hover:bg-[var(--color-blue-400)] hover:text-white transition-colors"
+              >
+                ✏️ 내 문제도 만들기
               </Link>
               <div className="mt-8 pt-6 border-t border-[var(--color-gray-700)]">
                 <a
