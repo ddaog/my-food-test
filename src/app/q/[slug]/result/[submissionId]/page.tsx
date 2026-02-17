@@ -53,7 +53,7 @@ export default function ResultPage() {
                   rel="noopener noreferrer"
                   className="block w-full py-3 px-4 rounded-[var(--rounded-sm)] bg-[var(--color-yellow-400)] text-[var(--color-gray-800)] font-bold text-center hover:opacity-90 transition-opacity"
                 >
-                  🛒 쿠팡에서 맛있는 음식 구경하기
+                  재밌었다면 한번 눌려주세요
                 </a>
                 <p className="mt-2 text-[11px] text-[var(--color-gray-500)] leading-relaxed">
                   위 링크는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의
