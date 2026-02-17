@@ -46,6 +46,20 @@ export default function ResultPage() {
               <Link href="/" className="text-[var(--color-gray-400)] text-sm">
                 홈으로
               </Link>
+              <div className="mt-8 pt-6 border-t border-[var(--color-gray-700)]">
+                <a
+                  href="https://link.coupang.com/a/dN5PtC"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-3 px-4 rounded-[var(--rounded-sm)] bg-[var(--color-yellow-400)] text-[var(--color-gray-800)] font-bold text-center hover:opacity-90 transition-opacity"
+                >
+                  🛒 쿠팡에서 맛있는 음식 구경하기
+                </a>
+                <p className="mt-2 text-[11px] text-[var(--color-gray-500)] leading-relaxed">
+                  위 링크는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의
+                  수수료를 제공받습니다.
+                </p>
+              </div>
         </div>
       </div>
     </div>
