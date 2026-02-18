@@ -63,15 +63,16 @@ function SortableItem({
   } = useSortable({ id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: CSS.Translate.toString(transform),
+    transition: isDragging ? "none" : transition, // Make motion snappier
+    zIndex: isDragging ? 100 : undefined,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-3 ios-card transition-all ${isDragging ? "opacity-50 z-10 shadow-2xl scale-[1.02]" : ""
+      className={`flex items-center gap-3 p-3 ios-card transition-all ${isDragging ? "opacity-50 shadow-2xl scale-[1.02]" : ""
         }`}
     >
       <button
@@ -169,7 +170,7 @@ export default function CreatePage() {
       activationConstraint: { distance: 5 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 5 },
+      activationConstraint: { delay: 150, tolerance: 5 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
