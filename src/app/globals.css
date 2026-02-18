@@ -9,33 +9,77 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --color-gray-100: #ffffff;
-  --color-gray-200: #fafafc;
-  --color-gray-300: #e2e2e2;
-  --color-gray-400: #bebec0;
-  --color-gray-500: #9b9b9b;
-  --color-gray-700: #303030;
-  --color-gray-800: #181818;
-  --color-blue-400: #3081fb;
-  --color-blue-500: #1960ca;
-  --color-yellow-400: #fed85d;
-  --color-red-400: #ff4545;
-  --color-green-400: #34c759;
+  /* iOS-inspired Light/Dark Palette */
+  --bg-color: #000000;
+  --secondary-bg: #1C1C1E;
+  --tertiary-bg: #2C2C2E;
+  
+  --color-primary: #0A84FF;
+  --color-primary-light: #409CFF;
+  --color-success: #32D74B;
+  --color-warning: #FFD60A;
+  --color-error: #FF453A;
+  
+  --text-main: #FFFFFF;
+  --text-secondary: #8E8E93;
+  --text-tertiary: #636366;
 
-  --rounded-xs: 6px;
-  --rounded-sm: 12px;
-  --rounded-md: 20px;
-  --rounded-lg: 32px;
+  /* Smoother Rounded Corners */
+  --rounded-sm: 10px;
+  --rounded-md: 16px;
+  --rounded-lg: 24px;
+  --rounded-xl: 32px;
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(28, 28, 30, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 @theme inline {
-  --color-background: var(--color-gray-200);
-  --color-foreground: var(--color-gray-800);
+  --color-background: var(--bg-color);
+  --color-foreground: var(--text-main);
 }
 
 body {
-  background: var(--color-gray-800);
-  color: var(--color-gray-800);
+  background: var(--bg-color);
+  color: var(--text-main);
   margin: 0;
   min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+.ios-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.ios-button {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+}
+
+.ios-button:active {
+  transform: scale(0.96);
+  opacity: 0.8;
+}
+
+.ios-card {
+  background: var(--secondary-bg);
+  border-radius: var(--rounded-md);
+  border: 1px solid var(--glass-border);
+}
+
+/* Custom scrollbar to match iOS style */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: 10px;
 }

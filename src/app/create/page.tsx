@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -30,6 +30,8 @@ const FOOD_EXAMPLES = [
   "빙수", "아이스크림", "케이크", "마라탕", "훠궈", "쌀국수", "팟타이", "분짜",
   "타코", "부리또", "나초", "김밥", "호떡", "붕어빵", "와플", "팬케이크", "크로아상", "베이글",
 ];
+
+const STORAGE_KEY = "my-food-test-draft";
 
 function getRandomFive(fullList: string[]): string[] {
   const shuffled = [...fullList].sort(() => Math.random() - 0.5);
@@ -67,51 +69,43 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 py-2 px-3 rounded-[var(--rounded-sm)] bg-[var(--color-gray-700)] min-w-0 ${
-        isDragging ? "opacity-80 z-10 shadow-lg" : ""
+      className={`flex items-center gap-3 p-3 ios-card transition-all ${
+        isDragging ? "opacity-50 z-10 shadow-2xl scale-[1.02]" : ""
       }`}
     >
       <button
         type="button"
-        className="cursor-grab active:cursor-grabbing p-1 text-[var(--color-gray-400)] hover:text-white touch-none shrink-0"
+        className="cursor-grab active:cursor-grabbing p-1 text-[var(--text-tertiary)] hover:text-white touch-none shrink-0"
         {...attributes}
         {...listeners}
-        aria-label="드래그하여 순서 변경"
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="9" cy="5" r="1" />
-          <circle cx="9" cy="12" r="1" />
-          <circle cx="9" cy="19" r="1" />
-          <circle cx="15" cy="5" r="1" />
-          <circle cx="15" cy="12" r="1" />
-          <circle cx="15" cy="19" r="1" />
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <circle cx="9" cy="5" r="1.5" fill="currentColor" />
+          <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+          <circle cx="9" cy="19" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="5" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="19" r="1.5" fill="currentColor" />
         </svg>
       </button>
-      <span className="w-6 text-[var(--color-gray-500)] font-medium shrink-0">
-        {rank}위
-      </span>
+      <div className="flex flex-col items-center justify-center min-w-[40px] h-10 rounded-full bg-[var(--tertiary-bg)]">
+         <span className="text-[var(--color-primary)] font-bold text-sm">{rank}</span>
+         <span className="text-[10px] text-[var(--text-tertiary)] uppercase leading-none">위</span>
+      </div>
       <input
         type="text"
         value={value}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder={`${rank}위 음식 입력`}
-        className="flex-1 min-w-0 py-2 px-3 rounded bg-[var(--color-gray-800)] border border-[var(--color-gray-600)] text-white placeholder:text-[var(--color-gray-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-blue-400)]"
+        className="flex-1 min-w-0 py-2 px-1 bg-transparent text-white font-medium placeholder:text-[var(--text-tertiary)] focus:outline-none"
         maxLength={50}
       />
       <button
         type="button"
         onClick={onRemove}
-        className="p-1 text-[var(--color-gray-500)] hover:text-[var(--color-red-400)] shrink-0"
-        aria-label="삭제"
+        className="p-2 mr-1 rounded-full text-[var(--text-tertiary)] hover:bg-[var(--tertiary-bg)] hover:text-[var(--color-error)] transition-colors shrink-0"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
@@ -125,9 +119,44 @@ export default function CreatePage() {
   const [items, setItems] = useState<string[]>(Array(10).fill(""));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [exampleFoods, setExampleFoods] = useState<string[]>(() =>
-    getRandomFive(FOOD_EXAMPLES)
-  );
+  const [showToast, setShowToast] = useState(false);
+  const [exampleFoods, setExampleFoods] = useState<string[]>([]);
+
+  useEffect(() => {
+    setExampleFoods(getRandomFive(FOOD_EXAMPLES));
+    
+    // Load from local storage
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const { title: sTitle, items: sItems } = JSON.parse(saved);
+        if (sTitle || sItems.some((i: string) => i)) {
+          setTitle(sTitle || "");
+          setItems(sItems || Array(10).fill(""));
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
+      } catch (e) {
+        console.error("Failed to parse draft", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Save to local storage
+    const timer = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ title, items }));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [title, items]);
+
+  const handleReset = () => {
+    if (confirm("모든 내용을 지우고 새로 시작할까요?")) {
+      setTitle("");
+      setItems(Array(10).fill(""));
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
 
   const refreshExamples = useCallback(() => {
     setExampleFoods(getRandomFive(FOOD_EXAMPLES));
@@ -200,6 +229,8 @@ export default function CreatePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "생성 실패");
+      
+      localStorage.removeItem(STORAGE_KEY);
       sessionStorage.setItem(`editToken_${data.slug}`, data.editToken);
       router.push(`/q/${data.slug}?created=1`);
     } catch (err) {
@@ -212,42 +243,56 @@ export default function CreatePage() {
   const filledCount = items.filter((i) => i.trim()).length;
 
   return (
-    <div className="min-h-screen bg-[var(--color-gray-800)]">
-      <header className="p-4 flex items-center gap-2">
+    <div className="min-h-screen bg-[var(--bg-color)] flex flex-col items-center">
+      <header className="fixed top-0 w-full max-w-lg ios-glass z-50 px-4 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="text-[var(--color-gray-400)] hover:text-white transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--tertiary-bg)] transition-colors"
         >
-          ←
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
         </Link>
         <h1 className="text-lg font-bold text-white">문제지 만들기</h1>
+        <button
+          onClick={handleReset}
+          className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--color-error)] transition-colors"
+        >
+          초기화
+        </button>
       </header>
 
-      <main className="px-6 pb-12 overflow-x-hidden w-full max-w-full box-border">
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-full">
-          <div>
-            <label className="block text-[var(--color-gray-400)] text-sm mb-2">
-              퀴즈 제목
+      <main className="w-full max-w-lg px-6 pt-24 pb-32">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <section className="space-y-4">
+            <label className="block text-[var(--text-secondary)] text-sm font-semibold px-1">
+              테스트 제목
             </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="예: 태욱의 최애 음식 TOP10"
-              className="w-full py-3 px-4 rounded-[var(--rounded-sm)] bg-[var(--color-gray-700)] border border-[var(--color-gray-600)] text-white placeholder:text-[var(--color-gray-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-blue-400)]"
-              maxLength={100}
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[var(--color-gray-400)] text-sm">
-                음식 10개 (드래그로 순서 변경)
-              </label>
-              <span className="text-[var(--color-gray-500)] text-sm">
-                {filledCount}/10
-              </span>
+            <div className="ios-card p-4">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="예: 션의 최애 음식 TOP10"
+                className="w-full bg-transparent text-xl font-bold text-white placeholder:text-[var(--text-tertiary)] focus:outline-none"
+                maxLength={100}
+              />
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <label className="text-[var(--text-secondary)] text-sm font-semibold">
+                음식 10개 나열 (끌어서 순서 조절)
+              </label>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse" />
+                <span className="text-[var(--text-secondary)] text-xs font-mono">
+                  {filledCount}/10
+                </span>
+              </div>
+            </div>
+            
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -257,7 +302,7 @@ export default function CreatePage() {
                 items={items.map((_, i) => `item-${i}`)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-2 w-full min-w-0">
+                <div className="space-y-3">
                   {items.map((item, i) => (
                     <SortableItem
                       key={`item-${i}`}
@@ -271,19 +316,23 @@ export default function CreatePage() {
                 </div>
               </SortableContext>
             </DndContext>
-          </div>
+          </section>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[var(--color-gray-400)] text-sm">
-                💡 음식 예시 (클릭하면 추가)
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <label className="text-[var(--text-secondary)] text-sm font-semibold">
+                💡 이런 음식은 어때요?
               </label>
               <button
                 type="button"
                 onClick={refreshExamples}
-                className="text-[var(--color-blue-400)] text-sm font-medium hover:underline"
+                className="text-[var(--color-primary-light)] text-xs font-bold hover:opacity-80 flex items-center gap-1"
               >
-                🔄 다른 예시 보기
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <path d="M23 4v6h-6M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+                새로고침
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -292,27 +341,47 @@ export default function CreatePage() {
                   key={food}
                   type="button"
                   onClick={() => addFromExample(food)}
-                  className="py-2 px-3 rounded-[var(--rounded-xs)] bg-[var(--color-gray-700)] text-[var(--color-gray-300)] text-sm hover:bg-[var(--color-blue-400)] hover:text-white transition-colors border border-[var(--color-gray-600)]"
+                  className="py-2.5 px-4 rounded-full bg-[var(--tertiary-bg)] text-white text-sm font-medium hover:bg-[var(--color-primary)] transition-all border border-[var(--glass-border)] active:scale-95"
                 >
                   {food}
                 </button>
               ))}
             </div>
+          </section>
+
+          <div className="fixed bottom-0 left-0 right-0 p-6 ios-glass z-50 flex flex-col items-center">
+             <div className="w-full max-w-lg">
+                {error && (
+                  <p className="text-[var(--color-error)] text-center text-sm font-medium mb-4 animate-bounce">
+                    {error}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 rounded-2xl bg-[var(--color-primary)] text-white font-bold text-lg ios-button disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      생성 중...
+                    </div>
+                  ) : (
+                    "테스트 만들기 완료"
+                  )}
+                </button>
+             </div>
           </div>
-
-          {error && (
-            <p className="text-[var(--color-red-400)] text-sm">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 rounded-[var(--rounded-md)] bg-[var(--color-blue-400)] text-white font-bold text-lg disabled:opacity-60 hover:bg-[var(--color-blue-500)] transition-colors"
-          >
-            {loading ? "생성 중..." : "문제지 만들기"}
-          </button>
         </form>
       </main>
+
+      {showToast && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 ios-glass px-6 py-3 rounded-full shadow-2xl z-[100] border border-[var(--color-primary-light)]/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <p className="text-white text-sm font-medium whitespace-nowrap">
+            📝 이전 작성 중인 내용을 불러왔어요
+          </p>
+        </div>
+      )}
     </div>
   );
 }

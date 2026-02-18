@@ -1,10 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Quiz = { title: string; items: string[] };
+
+function SortableQuizItem({
+  id,
+  value,
+  rank,
+}: {
+  id: string;
+  value: string;
+  rank: number;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-4 p-4 ios-card transition-all ${isDragging ? "opacity-50 z-10 shadow-2xl scale-[1.02]" : "active:scale-[0.98]"
+        }`}
+      {...attributes}
+      {...listeners}
+    >
+      <div className="flex flex-col items-center justify-center min-w-[40px] h-10 rounded-full bg-[var(--tertiary-bg)] shrink-0">
+        <span className="text-[var(--color-primary)] font-bold text-sm">{rank}</span>
+        <span className="text-[10px] text-[var(--text-tertiary)] uppercase leading-none">위</span>
+      </div>
+      <span className="flex-1 text-white font-medium text-lg">{value}</span>
+      <div className="text-[var(--text-tertiary)] hover:text-white cursor-grab active:cursor-grabbing">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M7 11h10M7 15h10M7 7h10" strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
 
 export default function QuizPage() {
   const params = useParams();
@@ -27,17 +90,27 @@ export default function QuizPage() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         setQuiz(data);
+        // Shuffle only on first load
         setOrder([...data.items].sort(() => Math.random() - 0.5));
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const moveItem = (from: number, to: number) => {
-    const next = [...order];
-    const [removed] = next.splice(from, 1);
-    next.splice(to, 0, removed);
-    setOrder(next);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setOrder((prev) => {
+        const oldIndex = prev.indexOf(active.id as string);
+        const newIndex = prev.indexOf(over.id as string);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,18 +148,27 @@ export default function QuizPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--color-gray-800)] flex items-center justify-center">
-        <p className="text-[var(--color-gray-400)]">로딩 중...</p>
+      <div className="min-h-screen bg-[var(--bg-color)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[var(--color-primary)]/20 border-t-[var(--color-primary)] rounded-full animate-spin" />
+          <p className="text-[var(--text-secondary)] font-medium">퀴즈 불러오는 중...</p>
+        </div>
       </div>
     );
   }
 
   if (error && !quiz) {
     return (
-      <div className="min-h-screen bg-[var(--color-gray-800)] flex flex-col items-center justify-center px-6">
-        <p className="text-[var(--color-red-400)] mb-4">{error}</p>
-        <Link href="/" className="text-[var(--color-blue-400)]">
-          홈으로
+      <div className="min-h-screen bg-[var(--bg-color)] flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-16 h-16 bg-[var(--color-error)]/10 text-[var(--color-error)] rounded-full flex items-center justify-center mb-4">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
+        </div>
+        <p className="text-white text-lg font-bold mb-2">{error}</p>
+        <Link href="/" className="text-[var(--color-primary-light)] font-medium hover:underline">
+          홈으로 돌아가기
         </Link>
       </div>
     );
@@ -95,117 +177,127 @@ export default function QuizPage() {
   if (!quiz) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--color-gray-800)]">
-      <header className="p-4 flex items-center justify-between">
-        <Link href="/" className="text-[var(--color-gray-400)] hover:text-white">
-          ←
+    <div className="min-h-screen bg-[var(--bg-color)] flex flex-col items-center">
+      <header className="fixed top-0 w-full max-w-lg ios-glass z-50 px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--tertiary-bg)] transition-colors">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </Link>
+        <h1 className="text-base font-bold text-white truncate px-4">{quiz.title}</h1>
         <button
           type="button"
           onClick={() => setShowShare(!showShare)}
-          className="text-[var(--color-blue-400)] font-medium"
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--tertiary-bg)] transition-colors text-[var(--color-primary)]"
         >
-          공유
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </header>
 
       {showShare && (
-        <div className="mx-4 mb-4 p-4 rounded-[var(--rounded-sm)] bg-[var(--color-gray-700)]">
-          <p className="text-[var(--color-gray-400)] text-sm mb-2">공유 링크</p>
-          <div className="flex gap-2">
-            <input
-              readOnly
-              value={shareUrl}
-              className="flex-1 py-2 px-3 rounded bg-[var(--color-gray-800)] text-white text-sm"
-            />
-            <button
-              type="button"
-              onClick={copyLink}
-              className="py-2 px-4 rounded bg-[var(--color-blue-400)] text-white text-sm font-medium"
-            >
-              복사
-            </button>
-          </div>
-        </div>
-      )}
-
-      {created && (
-        <div className="mx-4 mb-4 p-4 rounded-[var(--rounded-sm)] bg-[var(--color-green-400)]/20 text-[var(--color-green-400)]">
-          문제지가 생성되었어요! 링크를 친구에게 공유해보세요.
-        </div>
-      )}
-
-      <main className="px-6 pb-12">
-        <h1 className="text-xl font-bold text-white mb-6">{quiz.title}</h1>
-        <p className="text-[var(--color-gray-400)] text-sm mb-4">
-          아래 음식들을 1위~10위 순서로 드래그해서 정렬해주세요.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <ul className="space-y-2">
-            {order.map((item, i) => (
-              <li
-                key={`${item}-${i}`}
-                className="flex items-center gap-3 py-3 px-4 rounded-[var(--rounded-sm)] bg-[var(--color-gray-700)] text-white"
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-6" onClick={() => setShowShare(false)}>
+          <div className="w-full max-w-md ios-glass p-6 rounded-3xl space-y-4 animate-in slide-in-from-bottom" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">친구에게 공유하기</h3>
+              <button onClick={() => setShowShare(false)} className="text-[var(--text-secondary)]">닫기</button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={shareUrl}
+                className="flex-1 py-3 px-4 rounded-xl bg-[var(--tertiary-bg)] text-white text-sm focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyLink}
+                className="py-3 px-6 rounded-xl bg-[var(--color-primary)] text-white font-bold ios-button"
               >
-                <span className="w-6 text-[var(--color-gray-500)]">{i + 1}</span>
-                <span className="flex-1">{item}</span>
-                <div className="flex gap-1">
-                  {i > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => moveItem(i, i - 1)}
-                      className="p-1 text-[var(--color-gray-400)] hover:text-white"
-                    >
-                      ▲
-                    </button>
-                  )}
-                  {i < order.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={() => moveItem(i, i + 1)}
-                      className="p-1 text-[var(--color-gray-400)] hover:text-white"
-                    >
-                      ▼
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <div>
-            <label className="block text-[var(--color-gray-400)] text-sm mb-2">
-              닉네임
-            </label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="닉네임을 입력해주세요"
-              className="w-full py-3 px-4 rounded-[var(--rounded-sm)] bg-[var(--color-gray-700)] border border-[var(--color-gray-500)] text-white placeholder:text-[var(--color-gray-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-blue-400)]"
-              maxLength={50}
-            />
+                복사
+              </button>
+            </div>
           </div>
+        </div>
+      )}
 
-          {error && (
-            <p className="text-[var(--color-red-400)] text-sm">{error}</p>
-          )}
+      <main className="w-full max-w-lg px-6 pt-24 pb-48">
+        <div className="mb-8 space-y-2">
+          <h2 className="text-2xl font-black text-white leading-tight">
+            {quiz.title}
+          </h2>
+          <p className="text-[var(--text-secondary)] text-sm font-medium">
+            👇 음식들을 1위부터 10위까지 정렬해주세요!
+          </p>
+        </div>
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 py-4 rounded-[var(--rounded-md)] bg-[var(--color-blue-400)] text-white font-bold disabled:opacity-60 hover:bg-[var(--color-blue-500)]"
+        <form onSubmit={handleSubmit} className="space-y-12">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={order}
+              strategy={verticalListSortingStrategy}
             >
-              {submitting ? "채점 중..." : "제출하기"}
-            </button>
-            <Link
-              href={`/q/${slug}/leaderboard`}
-              className="flex-1 py-4 rounded-[var(--rounded-md)] bg-[var(--color-gray-700)] text-white font-bold text-center border border-[var(--color-gray-500)] hover:bg-[var(--color-gray-500)]"
-            >
-              리더보드
-            </Link>
+              <div className="space-y-3">
+                {order.map((item, i) => (
+                  <SortableQuizItem
+                    key={item}
+                    id={item}
+                    value={item}
+                    rank={i + 1}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          <section className="space-y-4">
+            <label className="block text-[var(--text-secondary)] text-sm font-semibold px-1">
+              닉네임 (결과 기록용)
+            </label>
+            <div className="ios-card p-4">
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="내 이름이나 별명을 입력해줘"
+                className="w-full bg-transparent text-lg font-bold text-white placeholder:text-[var(--text-tertiary)] focus:outline-none"
+                maxLength={50}
+              />
+            </div>
+          </section>
+
+          <div className="fixed bottom-0 left-0 right-0 p-6 ios-glass z-50 flex flex-col items-center">
+            <div className="w-full max-w-lg">
+              {error && (
+                <p className="text-[var(--color-error)] text-center text-sm font-medium mb-4 animate-bounce">
+                  {error}
+                </p>
+              )}
+              {created && (
+                <div className="mb-4 py-2 px-4 rounded-full bg-[var(--color-success)]/10 border border-[var(--color-success)]/20 text-[var(--color-success)] text-xs font-bold text-center">
+                  ✨ 방금 만든 테스트예요! 이제 공유해보세요.
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-[2] py-4 rounded-2xl bg-[var(--color-primary)] text-white font-bold text-lg ios-button disabled:opacity-50"
+                >
+                  {submitting ? "채점 중..." : "제출하고 결과 보기"}
+                </button>
+                <Link
+                  href={`/q/${slug}/leaderboard`}
+                  className="flex-1 py-4 rounded-2xl bg-[var(--tertiary-bg)] text-white font-bold text-lg text-center ios-button border border-[var(--glass-border)]"
+                >
+                  순위표
+                </Link>
+              </div>
+            </div>
           </div>
         </form>
       </main>
