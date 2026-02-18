@@ -179,11 +179,18 @@ export default function ResultPage() {
             </Link>
             <Link
               href="/create"
-              className="py-4 rounded-2xl bg-white text-black font-bold text-center ios-button shadow-xl"
+              className="py-4 rounded-2xl bg-[var(--tertiary-bg)] text-white font-bold text-center ios-button border border-[var(--glass-border)]"
             >
               나도 만들기
             </Link>
           </div>
+
+          <Link
+            href={`/q/${slug}/leaderboard`}
+            className="block w-full py-4 rounded-2xl bg-white text-black font-bold text-lg text-center ios-button shadow-xl"
+          >
+            전체 순위표 보기
+          </Link>
         </div>
 
         <div className="mt-16 w-full opacity-80">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -24,14 +24,16 @@ import { CSS } from "@dnd-kit/utilities";
 
 type Quiz = { title: string; items: string[] };
 
-function SortableQuizItem({
+function SortableRankedItem({
   id,
   value,
   rank,
+  onRemove,
 }: {
   id: string;
   value: string;
   rank: number;
+  onRemove: () => void;
 }) {
   const {
     attributes,
@@ -44,7 +46,7 @@ function SortableQuizItem({
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    transition: isDragging ? "none" : transition, // Make motion snappier
+    transition: isDragging ? "none" : transition,
     zIndex: isDragging ? 100 : undefined,
   };
 
@@ -54,23 +56,50 @@ function SortableQuizItem({
       style={style}
       className={`flex items-center gap-4 p-4 ios-card transition-all ${isDragging ? "opacity-50 shadow-2xl scale-[1.02]" : "active:scale-[0.98]"
         }`}
-      {...attributes}
-      {...listeners}
     >
       <div className="flex flex-col items-center justify-center min-w-[40px] h-10 rounded-full bg-[var(--tertiary-bg)] shrink-0">
         <span className="text-[var(--color-primary)] font-bold text-sm">{rank}</span>
         <span className="text-[10px] text-[var(--text-tertiary)] uppercase leading-none">위</span>
       </div>
-      <span className="flex-1 text-white font-medium text-lg">{value}</span>
-      <div
-        className="text-[var(--text-tertiary)] hover:text-white cursor-grab active:cursor-grabbing p-2 touch-none"
-        {...attributes}
-        {...listeners}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M7 11h10M7 15h10M7 7h10" strokeLinecap="round" />
-        </svg>
+      <div className="flex-1 min-w-0 flex items-center justify-between gap-2 overflow-hidden">
+        <span className="truncate text-white font-medium text-lg cursor-pointer" onClick={onRemove}>
+          {value}
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <div
+            className="text-[var(--text-tertiary)] hover:text-white cursor-grab active:cursor-grabbing p-2 touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M7 11h10M7 15h10M7 7h10" strokeLinecap="round" />
+            </svg>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-[var(--text-tertiary)] hover:text-[var(--color-error)] transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function EmptyRankSlot({ rank }: { rank: number }) {
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.02] opacity-40">
+      <div className="flex flex-col items-center justify-center min-w-[40px] h-10 rounded-full bg-white/10 shrink-0">
+        <span className="text-white/40 font-bold text-sm">{rank}</span>
+      </div>
+      <span className="text-white/20 font-medium italic">음식을 아래에서 선택해주세요</span>
     </div>
   );
 }
@@ -83,7 +112,8 @@ export default function QuizPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [order, setOrder] = useState<string[]>([]);
+  const [order, setOrder] = useState<string[]>([]); // Ranked items
+  const [pool, setPool] = useState<string[]>([]); // Remaining items
   const [nickname, setNickname] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -96,8 +126,8 @@ export default function QuizPage() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         setQuiz(data);
-        // Shuffle only on first load
-        setOrder([...data.items].sort(() => Math.random() - 0.5));
+        // Initially everything is in pool, shuffled
+        setPool([...data.items].sort(() => Math.random() - 0.5));
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -108,6 +138,17 @@ export default function QuizPage() {
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  const handleSelect = (item: string) => {
+    if (order.length >= (quiz?.items.length || 10)) return;
+    setPool((prev) => prev.filter((i) => i !== item));
+    setOrder((prev) => [...prev, item]);
+  };
+
+  const handleRemove = (item: string) => {
+    setOrder((prev) => prev.filter((i) => i !== item));
+    setPool((prev) => [...prev, item]);
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -122,6 +163,10 @@ export default function QuizPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (order.length < (quiz?.items.length || 10)) {
+      setError("모든 항목의 순위를 정해주세요.");
+      return;
+    }
     if (!nickname.trim()) {
       setError("닉네임을 입력해주세요.");
       return;
@@ -235,49 +280,74 @@ export default function QuizPage() {
       )}
 
       <main className="w-full max-w-lg px-6 pt-24 pb-48">
-        <div className="mb-8 space-y-2">
-          <h2 className="text-2xl font-black text-white leading-tight">
+        <div className="mb-10 space-y-2">
+          <h2 className="text-3xl font-black text-white leading-tight">
             {quiz.title}
           </h2>
           <p className="text-[var(--text-secondary)] text-sm font-medium">
-            👇 음식들을 1위부터 10위까지 정렬해주세요!
+            👇 음식을 차례대로 클릭해서 1위부터 10위를 정해주세요!
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-12">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={order}
-              strategy={verticalListSortingStrategy}
+          <section className="space-y-4 mb-16">
+            <h3 className="text-xs font-black text-[var(--color-primary)] uppercase tracking-widest px-1">Selected Ranking</h3>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div className="space-y-3">
-                {order.map((item, i) => (
-                  <SortableQuizItem
-                    key={item}
-                    id={item}
-                    value={item}
-                    rank={i + 1}
-                  />
+              <SortableContext
+                items={order}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3 min-h-[100px]">
+                  {order.map((item, i) => (
+                    <SortableRankedItem
+                      key={item}
+                      id={item}
+                      value={item}
+                      rank={i + 1}
+                      onRemove={() => handleRemove(item)}
+                    />
+                  ))}
+                  {Array.from({ length: Math.max(0, 10 - order.length) }).map((_, i) => (
+                    <EmptyRankSlot key={`empty-${i}`} rank={order.length + i + 1} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </section>
+
+          {pool.length > 0 && (
+            <section className="space-y-4">
+              <h3 className="text-xs font-black text-[var(--color-primary)] uppercase tracking-widest px-1">Available Foods</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {pool.map((food) => (
+                  <button
+                    key={food}
+                    type="button"
+                    onClick={() => handleSelect(food)}
+                    className="p-4 rounded-2xl bg-[var(--tertiary-bg)] text-white font-bold text-sm border border-[var(--glass-border)] hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)] active:scale-95 transition-all text-left truncate flex items-center justify-between group"
+                  >
+                    <span>{food}</span>
+                    <span className="opacity-0 group-hover:opacity-50 text-xs">+</span>
+                  </button>
                 ))}
               </div>
-            </SortableContext>
-          </DndContext>
+            </section>
+          )}
 
-          <section className="space-y-4">
-            <label className="block text-[var(--text-secondary)] text-sm font-semibold px-1">
-              닉네임 (결과 기록용)
-            </label>
+          <section className="space-y-4 pt-10">
+            <h3 className="text-xs font-black text-[var(--text-tertiary)] uppercase tracking-widest px-1">Submit Result</h3>
             <div className="ios-card p-4">
+              <label className="block text-[var(--text-tertiary)] text-[10px] font-black uppercase tracking-tighter mb-1">Nickname</label>
               <input
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 placeholder="내 이름이나 별명을 입력해줘"
-                className="w-full bg-transparent text-lg font-bold text-white placeholder:text-[var(--text-tertiary)] focus:outline-none"
+                className="w-full bg-transparent text-xl font-bold text-white placeholder:text-[var(--text-tertiary)] focus:outline-none"
                 maxLength={50}
               />
             </div>
@@ -298,8 +368,8 @@ export default function QuizPage() {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="flex-[2] py-4 rounded-2xl bg-[var(--color-primary)] text-white font-bold text-lg ios-button disabled:opacity-50"
+                  disabled={submitting || order.length < (quiz?.items.length || 10)}
+                  className="flex-[2] py-4 rounded-2xl bg-[var(--color-primary)] text-white font-bold text-lg ios-button disabled:opacity-30 disabled:grayscale transition-all shadow-xl shadow-[var(--color-primary)]/10"
                 >
                   {submitting ? "채점 중..." : "제출하고 결과 보기"}
                 </button>
