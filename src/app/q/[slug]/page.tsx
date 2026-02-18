@@ -99,7 +99,7 @@ function EmptyRankSlot({ rank }: { rank: number }) {
       <div className="flex flex-col items-center justify-center min-w-[40px] h-10 rounded-full bg-white/10 shrink-0">
         <span className="text-white/40 font-bold text-sm">{rank}</span>
       </div>
-      <span className="text-white/20 font-medium italic">음식을 아래에서 선택해주세요</span>
+      <span className="text-white/20 font-medium italic">음식을 위에서 선택해주세요</span>
     </div>
   );
 }
@@ -290,7 +290,26 @@ export default function QuizPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-12">
-          <section className="space-y-4 mb-16">
+          {pool.length > 0 && (
+            <section className="space-y-4">
+              <h3 className="text-xs font-black text-[var(--color-primary)] uppercase tracking-widest px-1">Available Foods</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {pool.map((food) => (
+                  <button
+                    key={food}
+                    type="button"
+                    onClick={() => handleSelect(food)}
+                    className="p-4 rounded-2xl bg-[var(--tertiary-bg)] text-white font-bold text-sm border border-[var(--glass-border)] hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)] active:scale-95 transition-all text-left truncate flex items-center justify-between group"
+                  >
+                    <span>{food}</span>
+                    <span className="opacity-0 group-hover:opacity-50 text-xs">+</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="space-y-4 pt-4">
             <h3 className="text-xs font-black text-[var(--color-primary)] uppercase tracking-widest px-1">Selected Ranking</h3>
             <DndContext
               sensors={sensors}
@@ -318,25 +337,6 @@ export default function QuizPage() {
               </SortableContext>
             </DndContext>
           </section>
-
-          {pool.length > 0 && (
-            <section className="space-y-4">
-              <h3 className="text-xs font-black text-[var(--color-primary)] uppercase tracking-widest px-1">Available Foods</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {pool.map((food) => (
-                  <button
-                    key={food}
-                    type="button"
-                    onClick={() => handleSelect(food)}
-                    className="p-4 rounded-2xl bg-[var(--tertiary-bg)] text-white font-bold text-sm border border-[var(--glass-border)] hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)] active:scale-95 transition-all text-left truncate flex items-center justify-between group"
-                  >
-                    <span>{food}</span>
-                    <span className="opacity-0 group-hover:opacity-50 text-xs">+</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
 
           <section className="space-y-4 pt-10">
             <h3 className="text-xs font-black text-[var(--text-tertiary)] uppercase tracking-widest px-1">Submit Result</h3>
