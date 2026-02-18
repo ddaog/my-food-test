@@ -25,30 +25,41 @@ export default function ResultPage() {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    // We could ideally get this from a single API call, 
-    // but for now we'll fetch the quiz to get correct ranks 
-    // and assume we know the user's order from the submission if we had a dedicated API.
-    // To keep it simple and robust, we fetch the quiz data.
     setLoading(true);
-    fetch(`/api/quizzes/${slug}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) throw new Error(data.error);
+    // We fetch the quiz to get the correct order,
+    // and we fetch the submission to get the user's order for detailed scoring.
+    Promise.all([
+      fetch(`/api/quizzes/${slug}`).then(r => r.json()),
+      fetch(`/api/quizzes/${slug}/submit-details?submissionId=${submissionId}`).then(r => r.json())
+    ])
+      .then(([quizData, subData]) => {
+        if (quizData.error) throw new Error(quizData.error);
+        if (subData.error) throw new Error(subData.error);
 
-        // Since we don't have a GET /submissions/[id] API yet, 
-        // we'll just show the correct answers list for now, 
-        // but redesigned with iOS style.
-        // (Full side-by-side would require Submission API update)
-        setComparison(data.items.map((name: string, i: number) => ({
-          name,
-          userRank: 0, // Placeholder
-          correctRank: i + 1,
-          points: 0 // Placeholder
-        })));
+        const correctOrder = quizData.items;
+        const userAnswers = subData.answers || [];
+
+        const correctMap = new Map();
+        correctOrder.forEach((name: string, i: number) => correctMap.set(name, i + 1));
+
+        const comp = userAnswers.map((ans: any) => {
+          const cRank = correctMap.get(ans.name);
+          if (cRank === undefined) return null;
+          const diff = Math.abs(cRank - ans.selected_rank);
+          const pts = Math.max(0, 10 - diff);
+          return {
+            name: ans.name,
+            userRank: ans.selected_rank,
+            correctRank: cRank,
+            points: pts
+          };
+        }).filter(Boolean);
+
+        setComparison(comp.sort((a: any, b: any) => a.correctRank - b.correctRank));
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, submissionId]);
 
   const getRankEmoji = (s: number | null) => {
     if (s === null) return "🤔";
@@ -120,16 +131,30 @@ export default function ResultPage() {
           {showDetails && comparison && (
             <div className="w-full ios-card p-6 text-left animate-in fade-in slide-in-from-top-4 duration-300">
               <h3 className="text-[var(--text-secondary)] text-sm font-bold uppercase tracking-wider mb-4 px-1">
-                진짜 정답 순위 (1위~10위)
+                상세 점수 및 정답 (1위~10위)
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {comparison.map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-[var(--bg-color)]/50 border border-[var(--glass-border)]">
-                    <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] font-bold text-sm shrink-0">
-                      {item.correctRank}
+                  <div key={i} className="space-y-2">
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-[var(--bg-color)]/50 border border-[var(--glass-border)]">
+                      <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] font-bold text-sm shrink-0">
+                        {item.correctRank}
+                      </div>
+                      <span className="text-white font-semibold flex-1">{item.name}</span>
+                      <div className="text-right">
+                        <span className="text-[var(--color-warning)] font-bold text-sm">+{item.points}점</span>
+                      </div>
                     </div>
-                    <span className="text-white font-semibold flex-1">{item.name}</span>
-                    {item.correctRank <= 3 && <span className="text-lg">⭐</span>}
+                    <div className="flex justify-between px-3 text-[10px] font-medium">
+                      <span className="text-[var(--text-tertiary)]">
+                        내 선택: <span className="text-[var(--text-secondary)]">{item.userRank}위</span>
+                      </span>
+                      <span className="text-[var(--text-tertiary)]">
+                        차이: <span className={item.userRank === item.correctRank ? "text-[var(--color-success)]" : "text-[var(--color-error)]"}>
+                          {Math.abs(item.userRank - item.correctRank)}위
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -163,12 +188,12 @@ export default function ResultPage() {
 
         <div className="mt-16 w-full opacity-80">
           <a
-            href="https://link.coupang.com/a/dN5PtC"
+            href="https://link.coupang.com/a/dOnR5i"
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full p-4 rounded-2xl bg-gradient-to-r from-[var(--color-warning)] to-[#FF9500] text-black font-extrabold text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
           >
-            🍕 재밌었다면? 최애 음식 먹으러 가기!
+            🍕 재밌으셨다면? 식재료 찾아보기!
           </a>
           <p className="mt-3 text-[10px] text-[var(--text-tertiary)] leading-tight text-center">
             이 포스팅은 쿠팡 파트너스 활동의 일환으로,<br />이에 따른 일정액의 수수료를 제공받습니다.

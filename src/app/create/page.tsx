@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,6 +11,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  TouchSensor,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -33,8 +34,9 @@ const FOOD_EXAMPLES = [
 
 const STORAGE_KEY = "my-food-test-draft";
 
-function getRandomFive(fullList: string[]): string[] {
-  const shuffled = [...fullList].sort(() => Math.random() - 0.5);
+function getRandomFive(fullList: string[], currentItems: string[]): string[] {
+  const filtered = fullList.filter(f => !currentItems.some(i => i.trim() === f));
+  const shuffled = [...filtered].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, 5);
 }
 
@@ -69,13 +71,12 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-3 ios-card transition-all ${
-        isDragging ? "opacity-50 z-10 shadow-2xl scale-[1.02]" : ""
-      }`}
+      className={`flex items-center gap-3 p-3 ios-card transition-all ${isDragging ? "opacity-50 z-10 shadow-2xl scale-[1.02]" : ""
+        }`}
     >
       <button
         type="button"
-        className="cursor-grab active:cursor-grabbing p-1 text-[var(--text-tertiary)] hover:text-white touch-none shrink-0"
+        className="cursor-grab active:cursor-grabbing p-2 text-[var(--text-tertiary)] hover:text-white shrink-0 touch-none"
         {...attributes}
         {...listeners}
       >
@@ -89,8 +90,8 @@ function SortableItem({
         </svg>
       </button>
       <div className="flex flex-col items-center justify-center min-w-[40px] h-10 rounded-full bg-[var(--tertiary-bg)]">
-         <span className="text-[var(--color-primary)] font-bold text-sm">{rank}</span>
-         <span className="text-[10px] text-[var(--text-tertiary)] uppercase leading-none">위</span>
+        <span className="text-[var(--color-primary)] font-bold text-sm">{rank}</span>
+        <span className="text-[10px] text-[var(--text-tertiary)] uppercase leading-none">위</span>
       </div>
       <input
         type="text"
@@ -123,16 +124,16 @@ export default function CreatePage() {
   const [exampleFoods, setExampleFoods] = useState<string[]>([]);
 
   useEffect(() => {
-    setExampleFoods(getRandomFive(FOOD_EXAMPLES));
-    
     // Load from local storage
     const saved = localStorage.getItem(STORAGE_KEY);
+    let initialItems = Array(10).fill("");
     if (saved) {
       try {
         const { title: sTitle, items: sItems } = JSON.parse(saved);
         if (sTitle || sItems.some((i: string) => i)) {
           setTitle(sTitle || "");
-          setItems(sItems || Array(10).fill(""));
+          initialItems = sItems || Array(10).fill("");
+          setItems(initialItems);
           setShowToast(true);
           setTimeout(() => setShowToast(false), 3000);
         }
@@ -140,6 +141,7 @@ export default function CreatePage() {
         console.error("Failed to parse draft", e);
       }
     }
+    setExampleFoods(getRandomFive(FOOD_EXAMPLES, initialItems));
   }, []);
 
   useEffect(() => {
@@ -159,12 +161,15 @@ export default function CreatePage() {
   };
 
   const refreshExamples = useCallback(() => {
-    setExampleFoods(getRandomFive(FOOD_EXAMPLES));
-  }, []);
+    setExampleFoods(getRandomFive(FOOD_EXAMPLES, items));
+  }, [items]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -208,6 +213,10 @@ export default function CreatePage() {
     }
   };
 
+  const filteredExamples = useMemo(() => {
+    return exampleFoods.filter(f => !items.some(i => i.trim() === f));
+  }, [exampleFoods, items]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -229,7 +238,7 @@ export default function CreatePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "생성 실패");
-      
+
       localStorage.removeItem(STORAGE_KEY);
       sessionStorage.setItem(`editToken_${data.slug}`, data.editToken);
       router.push(`/q/${data.slug}?created=1`);
@@ -283,6 +292,40 @@ export default function CreatePage() {
           <section className="space-y-4">
             <div className="flex items-center justify-between px-1">
               <label className="text-[var(--text-secondary)] text-sm font-semibold">
+                💡 이런 음식은 어때요?
+              </label>
+              <button
+                type="button"
+                onClick={refreshExamples}
+                className="text-[var(--color-primary-light)] text-xs font-bold hover:opacity-80 flex items-center gap-1"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <path d="M23 4v6h-6M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+                새로고침
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {filteredExamples.map((food) => (
+                <button
+                  key={food}
+                  type="button"
+                  onClick={() => addFromExample(food)}
+                  className="py-2.5 px-4 rounded-full bg-[var(--tertiary-bg)] text-white text-sm font-medium hover:bg-[var(--color-primary)] transition-all border border-[var(--glass-border)] active:scale-95 touch-none"
+                >
+                  {food}
+                </button>
+              ))}
+              {filteredExamples.length === 0 && (
+                <p className="text-[var(--text-tertiary)] text-xs py-2">모든 추천 음식을 담았어요! 🥙</p>
+              )}
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <label className="text-[var(--text-secondary)] text-sm font-semibold">
                 음식 10개 나열 (끌어서 순서 조절)
               </label>
               <div className="flex items-center gap-1.5">
@@ -292,7 +335,7 @@ export default function CreatePage() {
                 </span>
               </div>
             </div>
-            
+
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -318,59 +361,28 @@ export default function CreatePage() {
             </DndContext>
           </section>
 
-          <section className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <label className="text-[var(--text-secondary)] text-sm font-semibold">
-                💡 이런 음식은 어때요?
-              </label>
+          <div className="fixed bottom-0 left-0 right-0 p-6 ios-glass z-50 flex flex-col items-center">
+            <div className="w-full max-w-lg">
+              {error && (
+                <p className="text-[var(--color-error)] text-center text-sm font-medium mb-4 animate-bounce">
+                  {error}
+                </p>
+              )}
               <button
-                type="button"
-                onClick={refreshExamples}
-                className="text-[var(--color-primary-light)] text-xs font-bold hover:opacity-80 flex items-center gap-1"
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 rounded-2xl bg-[var(--color-primary)] text-white font-bold text-lg ios-button disabled:opacity-50"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path d="M23 4v6h-6M1 20v-6h6" />
-                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-                </svg>
-                새로고침
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    생성 중...
+                  </div>
+                ) : (
+                  "테스트 만들기 완료"
+                )}
               </button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {exampleFoods.map((food) => (
-                <button
-                  key={food}
-                  type="button"
-                  onClick={() => addFromExample(food)}
-                  className="py-2.5 px-4 rounded-full bg-[var(--tertiary-bg)] text-white text-sm font-medium hover:bg-[var(--color-primary)] transition-all border border-[var(--glass-border)] active:scale-95"
-                >
-                  {food}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <div className="fixed bottom-0 left-0 right-0 p-6 ios-glass z-50 flex flex-col items-center">
-             <div className="w-full max-w-lg">
-                {error && (
-                  <p className="text-[var(--color-error)] text-center text-sm font-medium mb-4 animate-bounce">
-                    {error}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 rounded-2xl bg-[var(--color-primary)] text-white font-bold text-lg ios-button disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      생성 중...
-                    </div>
-                  ) : (
-                    "테스트 만들기 완료"
-                  )}
-                </button>
-             </div>
           </div>
         </form>
       </main>

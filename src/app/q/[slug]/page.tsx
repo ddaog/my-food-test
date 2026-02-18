@@ -11,6 +11,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  TouchSensor,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -60,7 +61,11 @@ function SortableQuizItem({
         <span className="text-[10px] text-[var(--text-tertiary)] uppercase leading-none">위</span>
       </div>
       <span className="flex-1 text-white font-medium text-lg">{value}</span>
-      <div className="text-[var(--text-tertiary)] hover:text-white cursor-grab active:cursor-grabbing">
+      <div
+        className="text-[var(--text-tertiary)] hover:text-white cursor-grab active:cursor-grabbing p-2 touch-none"
+        {...attributes}
+        {...listeners}
+      >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M7 11h10M7 15h10M7 7h10" strokeLinecap="round" />
         </svg>
@@ -99,6 +104,7 @@ export default function QuizPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -197,24 +203,30 @@ export default function QuizPage() {
       </header>
 
       {showShare && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-6" onClick={() => setShowShare(false)}>
-          <div className="w-full max-w-md ios-glass p-6 rounded-3xl space-y-4 animate-in slide-in-from-bottom" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center p-6 pb-safe" onClick={() => setShowShare(false)}>
+          <div className="w-full max-w-md ios-glass p-6 pb-8 rounded-t-[32px] rounded-b-none space-y-6 animate-in slide-in-from-bottom duration-300" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto" />
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold">친구에게 공유하기</h3>
-              <button onClick={() => setShowShare(false)} className="text-[var(--text-secondary)]">닫기</button>
+              <h3 className="text-xl font-bold">친구에게 공유하기</h3>
+              <button onClick={() => setShowShare(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-[var(--text-secondary)]">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
             </div>
-            <div className="flex gap-2">
-              <input
-                readOnly
-                value={shareUrl}
-                className="flex-1 py-3 px-4 rounded-xl bg-[var(--tertiary-bg)] text-white text-sm focus:outline-none"
-              />
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-[var(--tertiary-bg)] border border-[var(--glass-border)]">
+                <p className="text-[var(--text-secondary)] text-xs font-bold uppercase mb-2">공유 링크</p>
+                <input
+                  readOnly
+                  value={shareUrl}
+                  className="w-full bg-transparent text-white text-sm focus:outline-none"
+                />
+              </div>
               <button
                 type="button"
                 onClick={copyLink}
-                className="py-3 px-6 rounded-xl bg-[var(--color-primary)] text-white font-bold ios-button"
+                className="w-full py-4 rounded-2xl bg-[var(--color-primary)] text-white font-bold text-lg ios-button"
               >
-                복사
+                링크 복사하기
               </button>
             </div>
           </div>
