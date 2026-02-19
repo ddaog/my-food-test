@@ -68,7 +68,7 @@ export async function generateMetadata(
       description: "친구의 음식 취향을 얼마나 잘 알고 있나요? 지금 도전해보세요!",
       images: [
         {
-          url: "/og-image-kakao.png",
+          url: "/og-image-kakao.jpeg",
           width: 800,
           height: 400,
           alt: "내 최애 음식을 맞춰봐"
@@ -79,7 +79,7 @@ export async function generateMetadata(
       card: "summary_large_image",
       title: ogTitle,
       description: "친구의 음식 취향을 얼마나 잘 알고 있나요? 지금 도전해보세요!",
-      images: ["/og-image-kakao.png"],
+      images: ["/og-image-kakao.jpeg"],
     },
   };
 }

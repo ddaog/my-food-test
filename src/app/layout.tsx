@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     siteName: "My Food Test",
     images: [
       {
-        url: "/og-image-kakao.png",
+        url: "/og-image-kakao.jpeg",
         width: 800,
         height: 400,
         alt: "내 최애 음식을 맞춰봐",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "내 최애 음식을 맞춰봐",
     description: "내가 좋아하는 음식 1위~10위 맞추기 테스트",
-    images: ["/og-image-kakao.png"],
+    images: ["/og-image-kakao.jpeg"],
   },
   icons: {
     icon: "/favicon.png",
