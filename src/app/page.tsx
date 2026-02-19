@@ -9,8 +9,32 @@ export default function Home() {
 
       <div className="text-center max-w-md w-full z-10 space-y-8">
         <div className="space-y-3">
-          <div className="w-20 h-20 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-2xl">
-            🍜
+          {/* Marquee Container */}
+          <div className="relative w-full max-w-lg mx-auto h-40 overflow-hidden mask-linear-fade mb-6">
+            {/* Row 1: Left -> Right (Actually moving right means starting at -50% and going to 0) */}
+            <div className="flex gap-4 absolute top-0 left-0 animate-scroll-right whitespace-nowrap w-max">
+              {[...Array(2)].map((_, loop) => (
+                <div key={loop} className="flex gap-4">
+                  {["🍕", "🍔", "🍟", "🌭", "🍿", "🥓", "🥚", "🍳", "🧇", "🥞", "🍞", "🥐", "🥨", "🥖", "🧀", "🥗", "🥪", "🌮", "🌯", "🍖", "🍗", "🥩", "🍠", "🥟", "🥠", "🥡", "🍱", "🍘", "🍙", "🍚", "🍛", "🍜", "🍝", "🍢", "🍣", "🍤", "🍥", "🥮", "🍡", "🍦", "🍧", "🍨", "🍩", "🍪", "🎂", "🍰", "🧁", "🥧", "🍫", "🍬", "🍭", "🍮"].map((emoji, i) => (
+                    <div key={`${loop}-${i}`} className="text-4xl w-14 h-14 flex items-center justify-center bg-white/5 rounded-2xl border border-white/10 shrink-0">
+                      {emoji}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            {/* Row 2: Right -> Left (Moving left means starting at 0 and going to -50%) */}
+            <div className="flex gap-4 absolute top-16 left-0 animate-scroll-left whitespace-nowrap w-max">
+              {[...Array(2)].map((_, loop) => (
+                <div key={loop} className="flex gap-4">
+                  {["🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅", "🥔", "🥜", "🌰", "🍞", "🥐", "🥖", "🫓", "🥨", "🥯", "🥞", "🧇", "🧀", "🍖", "🍗", "🥩", "🥓", "🍔", "🍟", "🍕", "🌭", "🥪", "🌮", "🌯"].map((emoji, i) => (
+                    <div key={`${loop}-${i}`} className="text-4xl w-14 h-14 flex items-center justify-center bg-white/5 rounded-2xl border border-white/10 shrink-0">
+                      {emoji}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight">
             내 최애 음식<br />맞춰봐!

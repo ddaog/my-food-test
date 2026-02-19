@@ -117,7 +117,7 @@ function SortableItem({
 
 export default function CreatePage() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
+  const [nickname, setNickname] = useState("");
   const [items, setItems] = useState<string[]>(Array(10).fill(""));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -130,9 +130,9 @@ export default function CreatePage() {
     let initialItems = Array(10).fill("");
     if (saved) {
       try {
-        const { title: sTitle, items: sItems } = JSON.parse(saved);
-        if (sTitle || sItems.some((i: string) => i)) {
-          setTitle(sTitle || "");
+        const { nickname: sNickname, items: sItems } = JSON.parse(saved);
+        if (sNickname || sItems.some((i: string) => i)) {
+          setNickname(sNickname || "");
           initialItems = sItems || Array(10).fill("");
           setItems(initialItems);
           setShowToast(true);
@@ -148,18 +148,56 @@ export default function CreatePage() {
   useEffect(() => {
     // Save to local storage
     const timer = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ title, items }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ nickname, items }));
     }, 1000);
     return () => clearTimeout(timer);
-  }, [title, items]);
+  }, [nickname, items]);
 
   const handleReset = () => {
     if (confirm("모든 내용을 지우고 새로 시작할까요?")) {
-      setTitle("");
+      setNickname("");
       setItems(Array(10).fill(""));
       localStorage.removeItem(STORAGE_KEY);
     }
   };
+
+  // ... (keep intermediate code logic the same, check lines) ...
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!nickname.trim()) {
+      setError("닉네임을 입력해주세요.");
+      return;
+    }
+    const trimmed = items.map((i) => i.trim()).filter(Boolean);
+    if (trimmed.length !== 10) {
+      setError("음식 10개를 모두 입력해주세요.");
+      return;
+    }
+    setLoading(true);
+    try {
+      // Auto-generate title
+      const autoTitle = `${nickname.trim()}의 최애 음식 TOP 10`;
+
+      const res = await fetch("/api/quizzes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: autoTitle, items: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "생성 실패");
+
+      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.setItem(`editToken_${data.slug}`, data.editToken);
+      router.push(`/q/${data.slug}?created=1`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "생성에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const refreshExamples = useCallback(() => {
     setExampleFoods(getRandomFive(FOOD_EXAMPLES, items));
@@ -218,37 +256,6 @@ export default function CreatePage() {
     return exampleFoods.filter(f => !items.some(i => i.trim() === f));
   }, [exampleFoods, items]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (!title.trim()) {
-      setError("제목을 입력해주세요.");
-      return;
-    }
-    const trimmed = items.map((i) => i.trim()).filter(Boolean);
-    if (trimmed.length !== 10) {
-      setError("음식 10개를 모두 입력해주세요.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/quizzes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), items: trimmed }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "생성 실패");
-
-      localStorage.removeItem(STORAGE_KEY);
-      sessionStorage.setItem(`editToken_${data.slug}`, data.editToken);
-      router.push(`/q/${data.slug}?created=1`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "생성에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filledCount = items.filter((i) => i.trim()).length;
 
@@ -276,18 +283,21 @@ export default function CreatePage() {
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="space-y-4">
             <label className="block text-[var(--text-secondary)] text-sm font-semibold px-1">
-              테스트 제목
+              닉네임
             </label>
             <div className="ios-card p-4">
               <input
                 type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="예: 션의 최애 음식 TOP10"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="예: 션, 태욱, 나노바나나"
                 className="w-full bg-transparent text-xl font-bold text-white placeholder:text-[var(--text-tertiary)] focus:outline-none"
-                maxLength={100}
+                maxLength={20}
               />
             </div>
+            <p className="text-[var(--text-tertiary)] text-xs px-1">
+              * '{nickname || "OO"}'의 최애 음식 TOP 10으로 제목이 자동 생성됩니다.
+            </p>
           </section>
 
           <section className="space-y-4">

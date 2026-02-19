@@ -237,15 +237,27 @@ export default function QuizPage() {
           </svg>
         </Link>
         <h1 className="text-base font-bold text-white truncate px-4">{quiz.title}</h1>
-        <button
-          type="button"
-          onClick={() => setShowShare(!showShare)}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--tertiary-bg)] transition-colors text-[var(--color-primary)]"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowShare(!showShare)}
+            className={`w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--tertiary-bg)] transition-colors text-[var(--color-primary)] ${created ? "animate-pulse ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-black" : ""}`}
+            aria-label="공유하기"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {created && !showShare && (
+            <div className="absolute top-14 right-0 w-max z-50 animate-bounce">
+              <div className="bg-[var(--color-primary)] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xl relative">
+                <div className="absolute -top-1 right-3 w-2 h-2 bg-[var(--color-primary)] rotate-45" />
+                친구에게 공유해보세요! 👆
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       {showShare && (

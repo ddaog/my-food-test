@@ -9,6 +9,14 @@ export const metadata: Metadata = {
     description: "내가 좋아하는 음식 1위~10위 맞추기 테스트",
     url: "https://my-food-test.vercel.app",
     siteName: "My Food Test",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "내 최애 음식을 맞춰봐 - 푸드 순위 테스트",
+      },
+    ],
     locale: "ko_KR",
     type: "website",
   },
@@ -16,6 +24,10 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "내 최애 음식을 맞춰봐",
     description: "내가 좋아하는 음식 1위~10위 맞추기 테스트",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: "/favicon.png",
   },
 };
 

@@ -13,13 +13,13 @@
   --bg-color: #000000;
   --secondary-bg: #1C1C1E;
   --tertiary-bg: #2C2C2E;
-  
+
   --color-primary: #0A84FF;
   --color-primary-light: #409CFF;
   --color-success: #32D74B;
   --color-warning: #FFD60A;
   --color-error: #FF453A;
-  
+
   --text-main: #FFFFFF;
   --text-secondary: #8E8E93;
   --text-tertiary: #636366;
@@ -29,7 +29,7 @@
   --rounded-md: 16px;
   --rounded-lg: 24px;
   --rounded-xl: 32px;
-  
+
   /* Glassmorphism */
   --glass-bg: rgba(28, 28, 30, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
@@ -82,4 +82,32 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--text-tertiary);
   border-radius: 10px;
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-left {
+  animation: scroll-left 30s linear infinite;
+}
+
+.animate-scroll-right {
+  animation: scroll-right 30s linear infinite;
 }
