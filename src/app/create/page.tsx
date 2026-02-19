@@ -290,7 +290,7 @@ export default function CreatePage() {
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                placeholder="예: 션, 태욱, 나노바나나"
+                placeholder="예: 선영, 민지, 민준, 성훈"
                 className="w-full bg-transparent text-xl font-bold text-white placeholder:text-[var(--text-tertiary)] focus:outline-none"
                 maxLength={20}
               />
