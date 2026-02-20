@@ -192,7 +192,7 @@ export default function QuizClient({ slug, initialData }: { slug: string; initia
             if (!res.ok) throw new Error(data.error || "제출 실패");
 
             // Google Analytics Event
-            triggerGAEvent("activate", "test", "answer_test", "my-food-test");
+            triggerGAEvent("activation", "test", "answer_test", "my-food-test");
 
             router.push(`/q/${slug}/result/${data.submissionId}?score=${data.score}`);
         } catch (err) {

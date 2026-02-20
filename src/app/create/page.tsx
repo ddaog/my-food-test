@@ -195,7 +195,7 @@ export default function CreatePage() {
       sessionStorage.setItem(`editToken_${data.slug}`, data.editToken);
 
       // Google Analytics Event
-      triggerGAEvent("activate", "test", "make_test", "my-food-test");
+      triggerGAEvent("activation", "test", "make_test", "my-food-test");
 
       router.push(`/q/${data.slug}?created=1`);
     } catch (err) {
