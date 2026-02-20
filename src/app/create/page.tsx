@@ -115,8 +115,11 @@ function SortableItem({
   );
 }
 
+import { triggerGAEvent } from "@/lib/gtag";
+
 export default function CreatePage() {
   const router = useRouter();
+  // ... (rest of the component)
   const [nickname, setNickname] = useState("");
   const [items, setItems] = useState<string[]>(Array(10).fill(""));
   const [loading, setLoading] = useState(false);
@@ -190,6 +193,10 @@ export default function CreatePage() {
 
       localStorage.removeItem(STORAGE_KEY);
       sessionStorage.setItem(`editToken_${data.slug}`, data.editToken);
+
+      // Google Analytics Event
+      triggerGAEvent("activate", "test", "make_test", "my-food-test");
+
       router.push(`/q/${data.slug}?created=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "생성에 실패했습니다.");

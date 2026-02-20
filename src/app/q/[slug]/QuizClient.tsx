@@ -1,5 +1,7 @@
 "use client";
 
+import { triggerGAEvent } from "@/lib/gtag";
+
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -188,6 +190,10 @@ export default function QuizClient({ slug, initialData }: { slug: string; initia
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "제출 실패");
+
+            // Google Analytics Event
+            triggerGAEvent("activate", "test", "answer_test", "my-food-test");
+
             router.push(`/q/${slug}/result/${data.submissionId}?score=${data.score}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "제출에 실패했습니다.");
